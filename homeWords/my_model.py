@@ -18,10 +18,44 @@ import numpy as np
 #from spacy.en import English
 spacy = sys.modules['spacy']
 gensim = sys.modules['gensim']
+from homeWords import nlp
+from homeWords import lda
 from homeWords import ref_df
+from homeWords import estimator
+
+
 from scipy.spatial.distance import cosine
 
 
+from six.moves.html_parser import HTMLParser
+
+
+class MLStripper(HTMLParser):
+    def __init__(self):
+        self.reset()
+        self.fed = []
+    def handle_data(self, d):
+        self.fed.append(d)
+    def get_data(self):
+        return ''.join(self.fed)
+
+def strip_tags(html):
+    s = MLStripper()
+    s.feed(html)
+    return s.get_data()
+
+h = HTMLParser()
+
+
+
+
+
+
+
+
+
+
+print 'I am in my_model.py \n\n\n\n'
 
 def define_coverage(row):
 	home_size = float(row.home_size)
@@ -61,14 +95,20 @@ def clean(doc, stoplist, d, nlp):
 
 
 def getEstimate(address, zipcode):
+        
+        print 'I am inside getEstimate \n\n\n\n'
 
 	#YOUR_ZILLOW_API_KEY = 'X1-ZWz1ffghcdgzkb_a80zd' #stephaniedebats@gmail.com
 	YOUR_ZILLOW_API_KEY = 'X1-ZWz19ktnpd1lor_67ceq' #forsalebyowner1234@gmail.com
 	zillow_data = ZillowWrapper(YOUR_ZILLOW_API_KEY)
 
-	deep_search_response = zillow_data.get_deep_search_results(address, zipcode)
-	result = GetDeepSearchResults(deep_search_response)
-	print "result.zillow_id = {}".format(result.zillow_id)
+        deep_search_response = zillow_data.get_deep_search_results(address, zipcode)
+        result = GetDeepSearchResults(deep_search_response)
+
+            
+
+
+
 
 	zestimate = "{:,.0f}".format(int(result.zestimate_amount))
 
@@ -76,11 +116,8 @@ def getEstimate(address, zipcode):
 	webpage = urlopen('http://www.zillow.com/homedetails/' + str(result.zillow_id) + '_zpid/').read()
 	soup = BeautifulSoup(webpage, 'lxml')
 
-	#description = soup.find('meta',  property='og:description')
-	#print(description['content'] if description else 'No meta description given')
-
 	description = soup.find('meta',  {'name':'twitter:description'})
-	description = description['content']
+	description = strip_tags(h.unescape(description['content']))
 
 	front_photo = soup.find('meta', {'name':'twitter:image'})
 	front_photo = front_photo['content']
@@ -88,6 +125,12 @@ def getEstimate(address, zipcode):
 
 	interior_photos = soup.findAll(href=re.compile('http://photos.zillowstatic.com/p_c/'))
 	interior_photos = [i.get('href') for i in interior_photos]
+
+
+        print 'I finished pulling stuff from zillow api \n\n\n\n'
+
+
+
 
 	# Create pandas dataframe for regression model
 	columns = (['bedrooms', 'bathrooms', 'latitude', 'longitude', 'property_size',
@@ -115,15 +158,26 @@ def getEstimate(address, zipcode):
 	# Fill in df with lot coverage
 	df['lot_coverage'] = df.apply(lambda row: define_coverage(row), axis=1)
 
+
+        print 'I finished filling in home stats to df  \n\n\n\n'
+
+
 	##### Fill in df with LDA topic information
 
 	# Load LDA model
 	
-	lda = gensim.models.LdaModel.load('/Users/srd/Projects/homeWords_website/homeWords/my_lda_model_k5.lda')
+#	lda = gensim.models.LdaModel.load('/Users/srd/Projects/homeWords_website/homeWords/my_lda_model_k5.lda')
 
 	# Clean and tokenize home_description
 
-	nlp = spacy.en.English(parser=False)
+
+        #print 'I started loading nlp \n\n\n'
+	#nlp = English(parser=False)
+        #print 'I finished loading nlp \n\n\n'
+        
+ 
+
+        
 
 	stoplist = (['house', 'home', 'seller', 'buyer',
 		'broker', 'agent', 'properties', 'listing',
@@ -200,8 +254,8 @@ def getEstimate(address, zipcode):
 
 	####### DATAFRAME IS READY FOR REGRESSION MODEL!!!!!
 	
-	with open('/Users/srd/Projects/homeWords_website/homeWords/my_gbrt.pkl', 'rb') as fid:
-		estimator = cPickle.load(fid)
+#	with open('/Users/srd/Projects/homeWords_website/homeWords/my_gbrt.pkl', 'rb') as fid:
+#		estimator = cPickle.load(fid)
 
 	estimate = estimator.predict(df)
 	estimate0 = estimate[0]
@@ -257,8 +311,9 @@ def getEstimate(address, zipcode):
 		#description = soup.find('meta',  property='og:description')
 		#print(description['content'] if description else 'No meta description given')
 
+                                
 		description0 = soup.find('meta',  {'name':'twitter:description'})
-		comps[counter]['description'] = description0['content']
+		comps[counter]['description'] = strip_tags(h.unescape(description0['content']))
 
 		front_photo0 = soup.find('meta', {'name':'twitter:image'})
 		front_photo0 = front_photo0['content']
