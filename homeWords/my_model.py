@@ -82,7 +82,7 @@ def call_zillow_api(address, zipcode):
 	zillow_data = ZillowWrapper(YOUR_ZILLOW_API_KEY)
 	
 	try:
-		deep_search_response = zillow_data.get_deep_search_results(a, z)
+		deep_search_response = zillow_data.get_deep_search_results(address, zipcode)
 		result = GetDeepSearchResults(deep_search_response)
 	except:
 		result = -9999
