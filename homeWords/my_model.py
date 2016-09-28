@@ -9,25 +9,16 @@ import pandas as pd
 import datetime as dt
 import sys
 import cPickle	
-#import gensim
-#from gensim import models
-#from gensim.utils import simple_preprocess
-#from gensim.parsing.preprocessing import STOPWORDS
 import numpy as np
-#import spacy
-#from spacy.en import English
+from scipy.spatial.distance import cosine
+from six.moves.html_parser import HTMLParser
+
 spacy = sys.modules['spacy']
 gensim = sys.modules['gensim']
 from homeWords import nlp
 from homeWords import lda
 from homeWords import ref_df
 from homeWords import estimator
-
-
-from scipy.spatial.distance import cosine
-
-
-from six.moves.html_parser import HTMLParser
 
 
 class MLStripper(HTMLParser):
@@ -46,16 +37,6 @@ def strip_tags(html):
 
 h = HTMLParser()
 
-
-
-
-
-
-
-
-
-
-print 'I am in my_model.py \n\n\n\n'
 
 def define_coverage(row):
 	home_size = float(row.home_size)
@@ -94,21 +75,23 @@ def clean(doc, stoplist, d, nlp):
 	return clean
 
 
-def getEstimate(address, zipcode):
-        
-        print 'I am inside getEstimate \n\n\n\n'
 
+def call_zillow_api(address, zipcode):
 	#YOUR_ZILLOW_API_KEY = 'X1-ZWz1ffghcdgzkb_a80zd' #stephaniedebats@gmail.com
 	YOUR_ZILLOW_API_KEY = 'X1-ZWz19ktnpd1lor_67ceq' #forsalebyowner1234@gmail.com
 	zillow_data = ZillowWrapper(YOUR_ZILLOW_API_KEY)
+	
+	try:
+		deep_search_response = zillow_data.get_deep_search_results(a, z)
+		result = GetDeepSearchResults(deep_search_response)
+	except:
+		result = -9999
+		
+	return result
 
-        deep_search_response = zillow_data.get_deep_search_results(address, zipcode)
-        result = GetDeepSearchResults(deep_search_response)
-
-            
 
 
-
+def getEstimate(result, address, zipcode):
 
 	zestimate = "{:,.0f}".format(int(result.zestimate_amount))
 
@@ -125,12 +108,6 @@ def getEstimate(address, zipcode):
 
 	interior_photos = soup.findAll(href=re.compile('http://photos.zillowstatic.com/p_c/'))
 	interior_photos = [i.get('href') for i in interior_photos]
-
-
-        print 'I finished pulling stuff from zillow api \n\n\n\n'
-
-
-
 
 	# Create pandas dataframe for regression model
 	columns = (['bedrooms', 'bathrooms', 'latitude', 'longitude', 'property_size',
@@ -158,27 +135,8 @@ def getEstimate(address, zipcode):
 	# Fill in df with lot coverage
 	df['lot_coverage'] = df.apply(lambda row: define_coverage(row), axis=1)
 
-
-        print 'I finished filling in home stats to df  \n\n\n\n'
-
-
-	##### Fill in df with LDA topic information
-
-	# Load LDA model
-	
-#	lda = gensim.models.LdaModel.load('/Users/srd/Projects/homeWords_website/homeWords/my_lda_model_k5.lda')
-
-	# Clean and tokenize home_description
-
-
-        #print 'I started loading nlp \n\n\n'
-	#nlp = English(parser=False)
-        #print 'I finished loading nlp \n\n\n'
         
- 
-
-        
-
+	#LDA
 	stoplist = (['house', 'home', 'seller', 'buyer',
 		'broker', 'agent', 'properties', 'listing',
 		'am', 'a.m.', 'pm', 'p.m.',
