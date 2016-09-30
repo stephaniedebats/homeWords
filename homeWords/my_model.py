@@ -84,6 +84,7 @@ def call_zillow_api(address, zipcode):
 	try:
 		deep_search_response = zillow_data.get_deep_search_results(address, zipcode)
 		result = GetDeepSearchResults(deep_search_response)
+		print 'User input zillow_id = {}'.format(result.zillow_id)
 	except:
 		result = -9999
 		
@@ -98,6 +99,14 @@ def getEstimate(result, address, zipcode):
 	# Use Zillow ID to scrape home description and photos
 	webpage = urlopen('http://www.zillow.com/homedetails/' + str(result.zillow_id) + '_zpid/').read()
 	soup = BeautifulSoup(webpage, 'lxml')
+
+	#<meta property="og:zillow_fb:address" content="549 Prospect St, San Carlos, CA 94070"/>
+
+	full_address = soup.find("meta",  property="og:zillow_fb:address")
+	full_address = full_address['content']
+
+	address = full_address.split(',')[0]
+	zipcode = full_address.split(',')[2].split('CA')[1]
 
 	description = soup.find('meta',  {'name':'twitter:description'})
 	description = strip_tags(h.unescape(description['content']))
@@ -240,7 +249,15 @@ def getEstimate(result, address, zipcode):
 			(ref_df.last_sold_price < float(estimate0)*1.3))
 		])
 
-	matches = matches[matches.address != address]
+	print matches.dtypes
+	print 'matches zid'
+	print matches.zillow_id
+	print 'result zid'
+	print result.zillow_id
+	print type(result.zillow_id)
+	
+	matches = matches[matches.zillow_id != int(result.zillow_id)]
+	#matches = matches[matches.address != address]
 
 	def cosine_sim_scores(row, topics):
 		check_topics = np.array([row['lda_k5_0'], row['lda_k5_1'], row['lda_k5_2'], row['lda_k5_3'], row['lda_k5_4']])
@@ -292,4 +309,4 @@ def getEstimate(result, address, zipcode):
 
 	#################
 
-	return estimate, zestimate, description, front_photo, interior_photos, comps
+	return full_address, estimate, zestimate, description, front_photo, interior_photos, comps

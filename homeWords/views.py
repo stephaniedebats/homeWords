@@ -24,10 +24,10 @@ def output():
     return render_template("error.html")
 
   else:
-    estimate, zestimate, description, front_photo, interior_photos, comps = getEstimate(result, address, zipcode)
+    full_address, estimate, zestimate, description, front_photo, interior_photos, comps = getEstimate(result, address, zipcode)
     
     return render_template("output.html",
-      address = address, zipcode = zipcode, the_estimate = estimate, zestimate = zestimate,
+      address = address, zipcode = zipcode, full_address=full_address, the_estimate = estimate, zestimate = zestimate,
       description = description, front_photo = front_photo, interior_photos=interior_photos,
       comps = comps
       )
