@@ -32,3 +32,7 @@ def output():
       comps = comps
       )
 
+
+@app.route('/slides')
+def slides():
+  return render_template("slides.html")
